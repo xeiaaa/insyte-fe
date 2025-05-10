@@ -1,5 +1,6 @@
 import { api } from "@/api";
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 export interface Note {
   _id: string;
@@ -16,16 +17,13 @@ export interface INotesContext {
 export const NotesContext = createContext<INotesContext | undefined>(undefined);
 
 export const NotesProvider = ({ children }: { children: React.ReactNode }) => {
-  const [notes, setNotes] = useState<Note[] | null>(null);
-  useEffect(() => {
-    const init = async () => {
+  const { data: notes } = useQuery({
+    queryKey: ["notes"],
+    queryFn: async () => {
       const response = await api.notes.getAll();
-      setNotes(response.data);
-      console.log(response.data);
-    };
-
-    init();
-  }, []);
+      return response.data;
+    },
+  });
 
   return (
     <NotesContext.Provider

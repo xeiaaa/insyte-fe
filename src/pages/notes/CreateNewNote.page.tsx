@@ -1,38 +1,35 @@
-import { axiosClient } from "@/api/axios";
+import { api } from "@/api";
+import { CreateNoteBody } from "@/api/notes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuth } from "@clerk/clerk-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
 
 type FormValues = {
   title: string;
-  files: FileList;
+  // files: FileList;
 };
 
 const CreateNewNotePage = () => {
   const { register, handleSubmit } = useForm<FormValues>();
-  const { getToken } = useAuth();
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
+  const mutation = useMutation({
+    mutationFn: async (body: CreateNoteBody) => {
+      const { data } = await api.notes.create(body);
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["notes"] });
+      navigate(`/notes/${data._id}`);
+    },
+  });
 
   const onSubmit = async (data: FormValues) => {
-    axiosClient
-      .post(
-        "/note",
-        { title: data.title },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${await getToken()}`,
-          },
-        }
-      )
-      .then((res) => {
-        console.log(res.data);
-      })
-      .catch((err) => {
-        console.log(err);
-      });
-    console.log({ data });
+    await mutation.mutateAsync(data);
   };
 
   return (
@@ -45,8 +42,8 @@ const CreateNewNotePage = () => {
         className="max-w-96"
         {...register("title")}
       />
-      <label htmlFor="files">Files</label>
-      <Input
+      {/* <label htmlFor="files">Files</label> */}
+      {/* <Input
         type="file"
         multiple
         id="files"
@@ -54,7 +51,7 @@ const CreateNewNotePage = () => {
         className="max-w-96"
         accept=".txt"
         {...register("files")}
-      />
+      /> */}
       <Button type="submit" className="self-start">
         Submit
       </Button>

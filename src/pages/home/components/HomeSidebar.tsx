@@ -22,13 +22,28 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import CreateNewNoteDialog from "./CreateNewNoteDialog";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useNotes } from "@/context/NotesContext";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { api } from "@/api";
 
 export function HomeSidebar() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const navigate = useNavigate();
+  const { noteId } = useParams<{ noteId: string }>();
   const { notes } = useNotes();
+  const queryClient = useQueryClient();
+
+  const deleteMutation = useMutation({
+    mutationFn: async (noteId: string) => {
+      const { data } = await api.notes.delete(noteId);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notes"] });
+      navigate(`/`);
+    },
+  });
 
   return (
     <>
@@ -55,7 +70,11 @@ export function HomeSidebar() {
                     <SidebarMenuItem key={note.title}>
                       <SidebarMenuButton asChild>
                         <Link to={`/notes/${note._id}`}>
-                          <span>{note.title}</span>
+                          <span
+                            className={`${note._id === noteId && "font-bold"}`}
+                          >
+                            {note.title}
+                          </span>
                         </Link>
                       </SidebarMenuButton>
                       <DropdownMenu>
@@ -65,18 +84,22 @@ export function HomeSidebar() {
                           </SidebarMenuAction>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent side="right" align="start">
-                          <DropdownMenuItem>
+                          {/* <DropdownMenuItem>
                             <span>Create new subfolder</span>
                           </DropdownMenuItem>
                           <DropdownMenuItem>
-                            <span>Edit</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
                             <span>Move To</span>
+                          </DropdownMenuItem> */}
+                          <DropdownMenuItem>
+                            <span>Rename</span>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem>
-                            <span>Delete</span>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              deleteMutation.mutate(note._id);
+                            }}
+                          >
+                            <span className="text-red-500">Delete</span>
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
